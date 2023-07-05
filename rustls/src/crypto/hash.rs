@@ -4,6 +4,12 @@ pub(crate) trait Hash: Send + Sync {
     fn algorithm(&self) -> HashAlgorithm;
     fn output_len(&self) -> usize;
     fn start(&self) -> Box<dyn Context>;
+
+    fn compute_empty(&self) -> Output {
+        self.compute(&[])
+    }
+
+    fn compute(&self, data: &[u8]) -> Output;
 }
 
 /// Maximum support hash output size: supports up to SHA512.
@@ -41,5 +47,13 @@ pub(crate) trait Context: Send + Sync {
     fn fork(&self) -> Box<dyn Context>;
 
     /// Finish the computation, returning the resulting output.
+    ///
+    /// The computation remains valid, and more data can be added later with
+    /// `update()`.  Compare with `finish()` which consumes the computation
+    /// and prevents any further data being added.  This can be more efficient
+    /// because it avoids a hash context copy to apply MD-padding.
+    fn fork_finish(&self) -> Output;
+
+    /// Terminate and finish the computation, returning the resulting output.
     fn finish(self: Box<Self>) -> Output;
 }

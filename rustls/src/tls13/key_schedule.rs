@@ -631,8 +631,7 @@ impl KeySchedule {
             .suite
             .common
             .hash_provider
-            .start()
-            .finish();
+            .compute_empty();
         self.derive(kind, empty_hash.as_ref())
     }
 
@@ -679,19 +678,18 @@ impl KeySchedule {
                 .suite
                 .common
                 .hash_provider
-                .start()
-                .finish();
+                .compute_empty();
 
             let expander =
                 hkdf::Expander::from_okm(current_exporter_secret, self.suite.hmac_provider);
             hkdf_expand_one(&expander, label, h_empty.as_ref())
         };
 
-        let h_context = {
-            let mut ctx = self.suite.common.hash_provider.start();
-            ctx.update(context.unwrap_or(&[]));
-            ctx.finish()
-        };
+        let h_context = self
+            .suite
+            .common
+            .hash_provider
+            .compute(context.unwrap_or(&[]));
 
         let expander = hkdf::Expander::from_okm(&secret, self.suite.hmac_provider);
         // TODO: Test what happens when this fails due to large `out.len()`

@@ -146,7 +146,7 @@ impl HandshakeHash {
 
     /// Get the current hash value.
     pub(crate) fn get_current_hash(&self) -> hash::Output {
-        self.ctx.fork().finish()
+        self.ctx.fork_finish()
     }
 
     /// Takes this object's buffer containing all handshake messages
