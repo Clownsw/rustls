@@ -1,14 +1,22 @@
-use crate::msgs::enums::HashAlgorithm;
+pub use crate::msgs::enums::HashAlgorithm;
 
-pub(crate) trait Hash: Send + Sync {
+/// Describes a single hash function.
+pub trait Hash: Send + Sync {
+    /// Which hash function this is, eg, `HashAlgorithm::SHA256`.
     fn algorithm(&self) -> HashAlgorithm;
+
+    /// The length in bytes of this hash function's output.
     fn output_len(&self) -> usize;
+
+    /// Start an incremental hash computation.
     fn start(&self) -> Box<dyn Context>;
 
+    /// Return the output of this hash function with empty input.
     fn compute_empty(&self) -> Output {
         self.compute(&[])
     }
 
+    /// Return the output of this hash function with input `data`.
     fn compute(&self, data: &[u8]) -> Output;
 }
 
@@ -16,13 +24,14 @@ pub(crate) trait Hash: Send + Sync {
 pub(crate) const HASH_MAX_OUTPUT: usize = 64;
 
 /// A hash output, stored as a value.
-pub(crate) struct Output {
+pub struct Output {
     buf: [u8; HASH_MAX_OUTPUT],
     used: usize,
 }
 
 impl Output {
-    pub(crate) fn new(bytes: &[u8]) -> Self {
+    /// Build a `hash::Output` from a slice of no more than `HASH_MAX_OUTPUT` bytes.
+    pub fn new(bytes: &[u8]) -> Self {
         let mut output = Self {
             buf: [0u8; HASH_MAX_OUTPUT],
             used: bytes.len(),
@@ -38,7 +47,8 @@ impl AsRef<[u8]> for Output {
     }
 }
 
-pub(crate) trait Context: Send + Sync {
+/// How to incrementally compute a hash.
+pub trait Context: Send + Sync {
     /// Add `data` to computation.
     fn update(&mut self, data: &[u8]);
 

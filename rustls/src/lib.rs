@@ -416,6 +416,9 @@ pub use crate::tls13::Tls13CipherSuite;
 pub use crate::verify::DigitallySignedStruct;
 pub use crate::versions::{SupportedProtocolVersion, ALL_VERSIONS, DEFAULT_VERSIONS};
 
+/// Items for use by custom cryptography providers:
+pub use crate::rand::GetRandomFailed;
+
 /// Items for use in a client.
 pub mod client {
     mod client_conn;
@@ -470,7 +473,7 @@ pub mod server {
         UnparsedCertRevocationList,
     };
     pub use crate::verify::NoClientAuth;
-    pub use handy::{NoServerSessionStorage, ServerSessionMemoryCache};
+    pub use handy::{NeverProducesTickets, NoServerSessionStorage, ServerSessionMemoryCache};
     pub use server_conn::StoresServerSessions;
     pub use server_conn::{
         Accepted, Acceptor, ReadEarlyData, ServerConfig, ServerConnection, ServerConnectionData,

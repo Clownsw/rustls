@@ -1,5 +1,4 @@
 use crate::crypto;
-use crate::crypto::cipher::{AeadKey, Iv, MessageDecrypter, MessageEncrypter};
 use crate::crypto::hash;
 use crate::enums::SignatureScheme;
 #[cfg(feature = "secret_extraction")]
@@ -10,24 +9,17 @@ use std::fmt;
 
 pub(crate) mod key_schedule;
 
-pub(crate) trait Tls13AeadAlgorithm: Send + Sync {
-    fn encrypter(&self, key: AeadKey, iv: Iv) -> Box<dyn MessageEncrypter>;
-    fn decrypter(&self, key: AeadKey, iv: Iv) -> Box<dyn MessageDecrypter>;
-    fn key_len(&self) -> usize;
-
-    #[cfg(feature = "secret_extraction")]
-    fn extract_keys(&self, key: AeadKey, iv: Iv) -> ConnectionTrafficSecrets;
-}
-
 /// A TLS 1.3 cipher suite supported by rustls.
 pub struct Tls13CipherSuite {
     /// Common cipher suite fields.
     pub common: CipherSuiteCommon,
-    pub(crate) hmac_provider: &'static dyn crypto::hmac::Hmac,
+
+    /// How to compute HMAC with the suite's hash function.
+    pub hmac_provider: &'static dyn crypto::hmac::Hmac,
 
     /// Producing a suitable `MessageDecrypter` or `MessageEncrypter`
     /// from the raw keys.
-    pub(crate) aead_alg: &'static dyn Tls13AeadAlgorithm,
+    pub aead_alg: &'static dyn crypto::cipher::Tls13AeadAlgorithm,
 
     #[cfg(feature = "quic")]
     pub(crate) confidentiality_limit: u64,

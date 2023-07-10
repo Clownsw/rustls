@@ -15,7 +15,7 @@ pub struct CipherSuiteCommon {
     pub suite: CipherSuite,
 
     /// Which hash function the suite uses.
-    pub(crate) hash_provider: &'static dyn crypto::hash::Hash,
+    pub hash_provider: &'static dyn crypto::hash::Hash,
 }
 
 /// A cipher suite supported by rustls.

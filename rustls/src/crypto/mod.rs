@@ -13,10 +13,10 @@ pub mod ring;
 pub mod cipher;
 
 /// Hashing interfaces.
-pub(crate) mod hash;
+pub mod hash;
 
 /// HMAC interfaces.
-pub(crate) mod hmac;
+pub mod hmac;
 
 /// Pluggable crypto galore.
 pub trait CryptoProvider: Send + Sync + 'static {
@@ -88,4 +88,76 @@ pub enum KeyExchangeError {
 pub trait SupportedGroup: Debug + Send + Sync + 'static {
     /// Named group the SupportedGroup operates in.
     fn name(&self) -> NamedGroup;
+}
+
+// Due to trait coherence, providers can't supply `WantsVerifier` builder states.
+// So we provide trivial ones here. TODO: could do better given this is generic over CryptoProvider.
+#[cfg(not(feature = "defaultprovider"))]
+use crate::{
+    builder::{ConfigBuilder, WantsVerifier},
+    verify, versions, ClientConfig,
+};
+#[cfg(not(feature = "defaultprovider"))]
+use std::sync::Arc;
+
+#[cfg(not(feature = "defaultprovider"))]
+impl<C: CryptoProvider> ConfigBuilder<ClientConfig<C>, WantsVerifier<C>> {
+    /// Set a custom certificate verifier.
+    pub fn with_custom_certificate_verifier(
+        self,
+        verifier: Arc<dyn verify::ServerCertVerifier>,
+    ) -> ConfigBuilder<ClientConfig<C>, WantsClientCert<C>> {
+        ConfigBuilder {
+            state: WantsClientCert {
+                cipher_suites: self.state.cipher_suites,
+                kx_groups: self.state.kx_groups,
+                versions: self.state.versions,
+                verifier,
+            },
+            side: std::marker::PhantomData::default(),
+        }
+    }
+}
+
+#[cfg(not(feature = "defaultprovider"))]
+/// A config builder state where the caller needs to supply whether and how to provide a client
+/// certificate.
+///
+/// For more information, see the [`ConfigBuilder`] documentation.
+pub struct WantsClientCert<C: CryptoProvider> {
+    cipher_suites: Vec<suites::SupportedCipherSuite>,
+    kx_groups: Vec<&'static <<C as CryptoProvider>::KeyExchange as KeyExchange>::SupportedGroup>,
+    versions: versions::EnabledVersions,
+    verifier: Arc<dyn verify::ServerCertVerifier>,
+}
+
+#[cfg(not(feature = "defaultprovider"))]
+impl<C: CryptoProvider> ConfigBuilder<ClientConfig<C>, WantsClientCert<C>> {
+    /// Do not support client auth.
+    pub fn with_no_client_auth(self) -> ClientConfig<C> {
+        self.with_client_cert_resolver(Arc::new(crate::client::handy::FailResolveClientCert {}))
+    }
+
+    /// Sets a custom [`ResolvesClientCert`].
+    pub fn with_client_cert_resolver(
+        self,
+        client_auth_cert_resolver: Arc<dyn crate::client::ResolvesClientCert>,
+    ) -> ClientConfig<C> {
+        ClientConfig {
+            cipher_suites: self.state.cipher_suites,
+            kx_groups: self.state.kx_groups,
+            alpn_protocols: Vec::new(),
+            resumption: crate::client::Resumption::default(),
+            max_fragment_size: None,
+            client_auth_cert_resolver,
+            versions: self.state.versions,
+            enable_sni: true,
+            verifier: self.state.verifier,
+            key_log: Arc::new(crate::key_log::NoKeyLog {}),
+            #[cfg(feature = "secret_extraction")]
+            enable_secret_extraction: false,
+            enable_early_data: false,
+            provider: std::marker::PhantomData,
+        }
+    }
 }

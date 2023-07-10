@@ -66,7 +66,7 @@ impl server::StoresServerSessions for ServerSessionMemoryCache {
 }
 
 /// Something which never produces tickets.
-pub(crate) struct NeverProducesTickets {}
+pub struct NeverProducesTickets {}
 
 impl server::ProducesTickets for NeverProducesTickets {
     fn enabled(&self) -> bool {
